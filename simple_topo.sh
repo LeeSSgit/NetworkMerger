@@ -1,25 +1,35 @@
 #!/bin/bash
 
-#sudo ip addr add 10.10.10.1/24 dev eth0
-#sudo ip link set dev eth1 up
-#sudo ip addr add 192.168.0.1/24 dev eth1
+function clean_bridges {
+	echo "start cleaning on $1"
+	ssh root@$1 'for BR in $(ovs-vsctl list-br); do ovs-vsctl del-br $BR; done'
+}
+
+function SingleTopo {
+        sIP=$1
+        echo "start deploy topology with one station"
+        clean_bridges "$1"
+}
 
 if [ $# -eq 0 ];
 then
-	echo "started without arguments"
-	vxlan_name=vxlan1
-	vxlan_id=1
-	vxlan_ip=192.168.0.100
-	echo "vxlan name and vxlan id configured by default"
-else
-	echo "started with arguments"
-	vxlan_name=$1
-	vxlan_id=$2
-	vxlan_ip=$3
-	echo "vxlan name is $vxlan_name"
-	echo "vxlan id is $vxlan_id"
-fi
+	echo "please, input all station's IPs separated by space"
+	read -a stations
+	SCount=${#stations[@]}
+	echo "okay, You have entered $SCount VM's"
 
-sudo ip link add $vxlan_name type vxlan id $vxlan_id group 239.0.0.1 port 0 0 dev eth1
-sudo ip addr add $vxlan_ip/24 dev $vxlan_name
-sudo ip link set dev $vxlan_name up 
+	if [ $SCount -eq 1 ];
+	then
+		SingleTopo "${stations[0]}"
+	fi
+	if [ $SCount -eq 1 ];
+        then
+		echo "two station topology! Cool!"
+	fi
+	if [ $SCount -eq 1 ];
+		echo "oh my gosh, really?"
+        then
+	
+else
+	echo "Wow! Arguments! I'm not ready yet to be honest."
+fi
