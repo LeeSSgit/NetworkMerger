@@ -7,8 +7,12 @@ function clean_bridges {
 
 function SingleTopo {
         sIP=$1
-        echo "start deploy topology with one station"
-        clean_bridges "$1"
+        #echo "start deploy topology with one station"
+        clean_bridges "$sIP"
+	#echo "start station script with single configuration parameter"
+	
+	scp single.conf root@$sIP:~/NetworkMerger/single.conf
+	ssh root@$sIP '~/NetworkMerger/netm_station.sh single.conf'
 }
 
 if [ $# -eq 0 ];
@@ -22,13 +26,12 @@ then
 	then
 		SingleTopo "${stations[0]}"
 	fi
-	if [ $SCount -eq 1 ];
+	if [ $SCount -eq 2];
         then
 		echo "two station topology! Cool!"
-	fi
-	if [ $SCount -eq 1 ];
+	else
 		echo "oh my gosh, really?"
-        then
+	fi
 	
 else
 	echo "Wow! Arguments! I'm not ready yet to be honest."
