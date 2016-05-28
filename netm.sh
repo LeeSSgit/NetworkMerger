@@ -75,6 +75,9 @@ function double_topo {
 	else
 		exit 1
 	fi
+	
+	echo $S2 >> double1.conf
+	echo $S1 >> double2.conf
 
 	echo "---- start deploy topology with two stations ----"
         echo "start cleaning on $S1 ..."

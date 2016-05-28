@@ -1,5 +1,7 @@
 #!/bin/bash
 
+exec 1> >(logger -s -t $(basename $0)) 2>&1
+
 declare -a CONFIG
 
 function read_conf_file {
@@ -39,5 +41,17 @@ else
 	#Set bridge IP. Specify it as a default gateway for joined networks
 		ip addr add ${CONFIG[0]}/${CONFIG[1]} dev $brname 
 	fi
-	
+
+	if [ $1 = "double.conf" ];
+	then
+		#echo "I'm fine!"
+		read_conf_file "double.conf"
+		brname="dvs"
+		ifconfig eth1 0
+		ovs-vsctl add-br $brname -- add-port $brname eth1
+		long=$(ovs-ofctl show S1 | grep eth1)
+		ofport_eth1=${long:1:1}
+		ip addr add ${CONFIG[0]}/${CONFIG[1]} dev $brname
+		ovs-vsctl add-port $brname vtep -- set interface vtep type=vxlan option:remote_ip=${CONFIG[2]} option:key=flow ofport_request=10
+	fi
 fi
