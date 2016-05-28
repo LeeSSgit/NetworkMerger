@@ -15,25 +15,25 @@ function connectivity() {
 
 function get_ip_and_netmask_from_user {
 	echo "please, specify the bridge IP which should be default gateway for hosts in $1"
-        echo -n "IP: "
+        echo "IP: "
         read GWIP
-        echo -n "Mask: "
+        echo "Mask: "
         read NM
 
         if validate_ip "$GWIP";
         then
-                echo "ip is in valid format"
+                echo "ip is ok"
         else
                 echo "ip is invalid. Halting..."
-                exit 1
+                return 1
         fi
 
         if validate_nm "$NM";
         then
-                echo "Mask is in valid format"
+                echo "mask is ok"
         else
                 echo "Mask is invalid. Halting..."
-                exit 1
+                return 1
         fi
 	GWNM[0]=${GWIP}
 	GWNM[1]=${NM}
@@ -60,13 +60,21 @@ function double_topo {
 	S1=$1
 	S2=$2
 	
-	get_ip_and_netmask_from_user "first network"
-        echo ${GWNM[0]} > double1.conf
-        echo ${GWNM[1]} >> double1.conf
+	if get_ip_and_netmask_from_user "first network"
+	then
+        	echo ${GWNM[0]} > double1.conf
+        	echo ${GWNM[1]} >> double1.conf
+	else
+		exit 1
+	fi
 	
-	get_ip_and_netmask_from_user "second network"
-        echo ${GWNM[0]} > double2.conf
-        echo ${GWNM[1]} >> double2.conf
+	if get_ip_and_netmask_from_user "second network"
+	then
+        	echo ${GWNM[0]} > double2.conf
+        	echo ${GWNM[1]} >> double2.conf
+	else
+		exit 1
+	fi
 
 	echo "---- start deploy topology with two stations ----"
         echo "start cleaning on $S1 ..."
@@ -75,11 +83,11 @@ function double_topo {
         clean_bridges "$S2"
 
 	echo "sending config file to $S1"
-        scp double1.conf root@$S1:/root/NetworkMerger/double.conf
+        scp /home/c4dev/NetworkMerger/double1.conf root@$S1:/root/NetworkMerger/double.conf
         echo "sending complete"
 	
 	echo "sending config file to $S2"
-        scp double2.conf root@$S2:/root/NetworkMerger/double.conf
+        scp /home/c4dev/NetworkMerger/double2.conf root@$S2:/root/NetworkMerger/double.conf
         echo "sending complete"
 
         echo "start script on $S1 with double configuration parameter"
@@ -145,8 +153,7 @@ then
 	fi
 	if [ $SCount -eq 2 ];
         then
-		#echo "Start checking connectivity..."
-		double_topo "${stations[0]} ${stations[1]}"
+		double_topo ${stations[0]} ${stations[1]}
 	fi
 	if [ $SCount -ge 3 ];
 	then
