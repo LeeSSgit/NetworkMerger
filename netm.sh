@@ -116,6 +116,10 @@ function validate_ip() {
 	return $stat
 }
 
+function send_script {
+	scp /home/c4dev/NetworkMerger/netm_station.sh root@$1:/root/NetworkMerger/netm_station.sh
+}
+
 function validate_nm() {
 	local stat=1
 	
@@ -149,6 +153,17 @@ then
 		echo "One or more IPs is invalid or unpingable. Halting..."
 		exit 1
 	fi
+
+	echo "re-send script to stations? (y/n)"
+	while true; 
+	do
+    		read yn
+    		case $yn in
+        		[Yy]* ) for (( i=0;i<$SCount;i++ )); do send_script ${stations[${i}]}; done; break;;
+        		[Nn]* ) break;;
+        		* ) echo "Please answer yes or no.";;
+    		esac
+	done 
 
 	if [ $SCount -eq 1 ];
 	then
