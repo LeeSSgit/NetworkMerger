@@ -1,44 +1,92 @@
 #!/bin/bash
 
+exec 1> >(logger -s -t $(basename $0)) 2>&1
+
+declare -a GWNM
+
 function clean_bridges {
-	echo "start cleaning on $1"
 	ssh root@$1 'for BR in $(ovs-vsctl list-br); do ovs-vsctl del-br $BR; done'
 }
 
-function single_topo {
-        sIP=$1
-	
-	echo "please, specify the bridge IP which should be default gateway for hosts in both networks"
-	echo -n "IP: "
-	read GWIP
-	echo -n "Mask: "
-	read GWNM
+function connectivity() {
+	ping -c 1 $1 2>&1 > /dev/null
+	return $?
+}
 
-	if validate_ip "$GWIP";
-	then
-		echo "ip is in valid format"
-	else
-		echo "ip is invalid. Halting..."
-		exit 1
-	fi 
+function get_ip_and_netmask_from_user {
+	echo "please, specify the bridge IP which should be default gateway for hosts in $1"
+        echo -n "IP: "
+        read GWIP
+        echo -n "Mask: "
+        read NM
 
-	if validate_nm "$GWNM";
+        if validate_ip "$GWIP";
+        then
+                echo "ip is in valid format"
+        else
+                echo "ip is invalid. Halting..."
+                exit 1
+        fi
+
+        if validate_nm "$NM";
         then
                 echo "Mask is in valid format"
         else
                 echo "Mask is invalid. Halting..."
                 exit 1
         fi
+	GWNM[0]=${GWIP}
+	GWNM[1]=${NM}
+}
 
-	echo $GWIP > single.conf
-	echo $GWNM >> single.conf
-        
-	echo "start deploy topology with one station"
-        clean_bridges "$sIP"
-	echo "start script on station with single configuration parameter"
+function single_topo {
+        sIP=$1
 	
+	get_ip_and_netmask_from_user "both networks"
+	echo ${GWNM[0]} > single.conf
+	echo ${GWNM[1]} >> single.conf
+        
+	echo "---- start deploy topology with one station ----"
+	echo "start cleaning on $sIP ..."
+        clean_bridges "$sIP"
+	echo "sending config file to $sIP"
 	scp single.conf root@$sIP:~/NetworkMerger/single.conf
+	echo "sending complete"
+	echo "start script on station with single configuration parameter"
 	ssh root@$sIP /root/NetworkMerger/netm_station.sh single.conf
+}
+
+function double_topo {
+	S1=$1
+	S2=$2
+	
+	get_ip_and_netmask_from_user "first network"
+        echo ${GWNM[0]} > double1.conf
+        echo ${GWNM[1]} >> double1.conf
+	
+	get_ip_and_netmask_from_user "second network"
+        echo ${GWNM[0]} > double2.conf
+        echo ${GWNM[1]} >> double2.conf
+
+	echo "---- start deploy topology with two stations ----"
+        echo "start cleaning on $S1 ..."
+        clean_bridges "$S1"
+        echo "start cleaning on $S2 ..."
+        clean_bridges "$S2"
+
+	echo "sending config file to $S1"
+        scp double1.conf root@$S1:/root/NetworkMerger/double.conf
+        echo "sending complete"
+	
+	echo "sending config file to $S2"
+        scp double2.conf root@$S2:/root/NetworkMerger/double.conf
+        echo "sending complete"
+
+        echo "start script on $S1 with double configuration parameter"
+        ssh root@$S1 /root/NetworkMerger/netm_station.sh double.conf
+
+	echo "start script on $S2 with double configuration parameter"
+        ssh root@$S2 /root/NetworkMerger/netm_station.sh double.conf
 }
 
 function validate_ip() {
@@ -71,12 +119,12 @@ then
 	read -a stations
 	SCount=${#stations[@]}
 	echo "okay, You have entered $SCount VM's"
-	echo "IP validation..."
+	echo "IP and connectivity validation..."
 	
 	let wasbad=0
 	for (( i=0;i<$SCount;i++ ));
 	do
-		if validate_ip ${stations[${i}]}; 
+		if (validate_ip ${stations[${i}]} = 0) && (connectivity ${stations[${i}]} = 0);
 		then 
 			stat='good' 
 		else 
@@ -87,7 +135,7 @@ then
 	done
 	if [ $wasbad -eq 1 ];
 	then
-		echo "One or more IPs is invalid. Halting..."
+		echo "One or more IPs is invalid or unpingable. Halting..."
 		exit 1
 	fi
 
@@ -97,7 +145,8 @@ then
 	fi
 	if [ $SCount -eq 2 ];
         then
-		echo "two station topology! Cool!"
+		#echo "Start checking connectivity..."
+		double_topo "${stations[0]} ${stations[1]}"
 	fi
 	if [ $SCount -ge 3 ];
 	then
