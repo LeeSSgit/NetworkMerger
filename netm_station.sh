@@ -24,14 +24,14 @@ else
 	if [ $1 = "single.conf" ];
 	then
 		read_conf_file "single.conf"
-		brname="S1"
+		brname="dvs"
 		ifconfig eth1 0
 		ifconfig eth2 0
 		ovs-vsctl add-br $brname -- add-port $brname eth1 -- add-port $brname eth2
 	#Take ofport numbers of added ports
-		long=$(ovs-ofctl show S1 | grep eth1)
+		long=$(ovs-ofctl show $brname | grep eth1)
 		ofport_eth1=${long:1:1}
-		long=$(ovs-ofctl show S1 | grep eth2)
+		long=$(ovs-ofctl show $brname | grep eth2)
 		ofport_eth2=${long:1:1}
 	#Set OpenFlow rules on switch
 		ovs-ofctl del-flows $brname
@@ -49,7 +49,7 @@ else
 		brname="dvs"
 		ifconfig eth1 0
 		ovs-vsctl add-br $brname -- add-port $brname eth1
-		long=$(ovs-ofctl show S1 | grep eth1)
+		long=$(ovs-ofctl show $brname | grep eth1)
 		ofport_eth1=${long:1:1}
 		ip addr add ${CONFIG[0]}/${CONFIG[1]} dev $brname
 		ovs-vsctl add-port $brname vtep -- set interface vtep type=vxlan option:remote_ip=${CONFIG[2]} option:key=flow ofport_request=10
