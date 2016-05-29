@@ -53,5 +53,9 @@ else
 		ofport_eth1=${long:1:1}
 		ip addr add ${CONFIG[0]}/${CONFIG[1]} dev $brname
 		ovs-vsctl add-port $brname vtep -- set interface vtep type=vxlan option:remote_ip=${CONFIG[2]} option:key=flow ofport_request=10
+		for DEV in $(ifconfig -a | sed 's/[ \t].*//;/^\(lo\|\)$/d'); 
+		do
+			ip link set mtu 9000 dev $DEV; 
+		done;
 	fi
 fi
