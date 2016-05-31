@@ -94,11 +94,11 @@ function double_topo {
         clean_bridges "$S2"
 
 	echo "sending config file to $S1"
-        scp /home/c4dev/NetworkMerger/double1.conf root@$S1:/root/NetworkMerger/double.conf
+        scp double1.conf root@$S1:/root/NetworkMerger/double.conf
         echo "sending complete"
 	
 	echo "sending config file to $S2"
-        scp /home/c4dev/NetworkMerger/double2.conf root@$S2:/root/NetworkMerger/double.conf
+        scp double2.conf root@$S2:/root/NetworkMerger/double.conf
         echo "sending complete"
 
         echo "start script on $S1 with double configuration parameter"
@@ -125,7 +125,7 @@ function validate_ip() {
 }
 
 function send_script {
-	scp /home/c4dev/NetworkMerger/netm_station.sh root@$1:/root/NetworkMerger/netm_station.sh
+	scp netm_station.sh root@$1:/root/NetworkMerger/netm_station.sh
 }
 
 function validate_nm() {
