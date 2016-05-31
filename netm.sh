@@ -5,7 +5,14 @@ exec 1> >(logger -s -t $(basename $0)) 2>&1
 declare -a GWNM
 
 function clean_bridges {
-	ssh root@$1 'for BR in $(ovs-vsctl list-br); do ovs-vsctl del-br $BR; done'
+        if (validate_ip $1 = 0) && (connectivity $1 = 0);
+	then
+		ssh root@$1 'for BR in $(ovs-vsctl list-br); do ovs-vsctl del-br $BR; done'
+		return 0
+	else
+		echo "IP $1 is invalid or inaccessible"
+		return 1
+	fi
 }
 
 function connectivity() {
@@ -45,6 +52,7 @@ function single_topo {
 	get_ip_and_netmask_from_user "both networks"
 	echo ${GWNM[0]} > single.conf
 	echo ${GWNM[1]} >> single.conf
+	echo "file single.conf writed"
         
 	echo "---- start deploy topology with one station ----"
 	echo "start cleaning on $sIP ..."
@@ -179,5 +187,12 @@ then
 	fi
 	
 else
-	echo "Wow! Arguments! I'm not ready yet to be honest."
+	if [[ $1 = "clear" && $# -ge 2 ]]
+	then
+		args=("$@")
+		for (( i=1;i<$#;i++ ));
+		do
+			if (clean_bridges ${args[${i}]} = 0) then echo "${args[${i}]} cleared"; fi;
+		done
+	fi
 fi
